@@ -6,12 +6,17 @@ import lejos.nxt.UltrasonicSensor;
 
 public class LineFollower {
 
-    private static final int BLACK_MAX = 50;
-    private static final int WHITE_MAX = 110;
-    private static final boolean SKIP_CALIBRATION = false;
-    private static final float SLOPE_ADJUST = 1;
-    private static final int MOTOR_MAX_SPEED = 500;
-    private static final int MOTOR_MIN_SPEED = 5;
+    private static final int DISTANCE_MIN = 24;
+    //pista 2
+//	private static final int BLACK_MAX = 45;
+//    private static final int WHITE_MAX = 80;
+    //pista 1
+    private static final int BLACK_MAX = 47;
+    private static final int WHITE_MAX = 95;
+    private static final boolean SKIP_CALIBRATION = true;
+    private static final float SLOPE_ADJUST = 3;
+    private static final int MOTOR_MAX_SPEED = 600;
+    private static final int MOTOR_MIN_SPEED = -50;
     private static final int MOTOR_MEDIUM_SPEED = (MOTOR_MAX_SPEED + MOTOR_MIN_SPEED) / 2;
 
     public static void main(String[] args) throws InterruptedException {
@@ -35,8 +40,8 @@ public class LineFollower {
 		    float sensorColor = lightSensor.getLightValue();
 		    float diference = sensorColor - middle_color;
 		    float turn = slope * diference;
-		    float motorASpeed = (1 - (turn * -1)) * MOTOR_MEDIUM_SPEED;
-		    float motorBSpeed = (1 - turn) * MOTOR_MEDIUM_SPEED;
+		    float motorASpeed = (1 - (turn)) * MOTOR_MEDIUM_SPEED;
+		    float motorBSpeed = (1 - (turn * -1)) * MOTOR_MEDIUM_SPEED;
 		    if (motorASpeed < MOTOR_MIN_SPEED) {
 		    	motorASpeed = MOTOR_MIN_SPEED;
 		    }
@@ -51,14 +56,25 @@ public class LineFollower {
 		    	motorBSpeed = MOTOR_MAX_SPEED;
 		    }
 		
-		    System.out.println(sensorColor + " - " + motorASpeed + " - " + motorBSpeed);
+		    System.out.println(sensorColor);
 		    Motor.A.setSpeed(motorASpeed);
 		    Motor.B.setSpeed(motorBSpeed);
-		    Motor.A.backward();
-		    Motor.B.backward();
+		    if (motorASpeed < 0) {
+		    	Motor.A.forward();
+		    	Motor.A.setSpeed(motorASpeed * -1);
+		    } else {
+		    	Motor.A.backward();
+		    }
+		    if (motorBSpeed < 0) {
+		    	Motor.B.forward();
+		    	Motor.B.setSpeed(motorBSpeed * -1);
+		    } else {
+		    	Motor.B.backward();
+		    }
         }
-        int distance = 20;
-        int walls = 0;
+        int distance = DISTANCE_MIN;
+        boolean turned = false;
+        long currentTime = System.currentTimeMillis();
         while (lightSensor.getColorID() != 0 && !touchSensor.isPressed()) {
         	if (ultrasonicSensor.getDistance() > distance) {
         		Motor.A.setSpeed(MOTOR_MAX_SPEED * 2);
@@ -66,15 +82,28 @@ public class LineFollower {
         		Motor.A.backward();
     		    Motor.B.backward();        		
         	} else {
-        		walls++;
-        		if (walls >= 3) {
-        			distance += 10;
-        			walls = 0;
+        		if (System.currentTimeMillis() - currentTime < 700) {
+        			Motor.A.stop(true);
+	        		Motor.B.stop();
+	        		Motor.A.rotate(300, true);
+	        		Motor.B.rotate(300);
         		}
+        		turned = true;
         		Motor.A.stop(true);
         		Motor.B.stop();
-        		Motor.A.rotate(355, true);
-        		Motor.B.rotate(-355);
+        		Motor.A.rotate(100, true);
+        		Motor.B.rotate(-640);
+        		currentTime = System.currentTimeMillis();
+        		
+        	}
+        	if (lightSensor.getColorID() == 1 && turned) {
+        		Motor.A.stop(true);
+        		Motor.B.stop();
+        		Motor.A.rotate(720, true);
+        		Motor.B.rotate(720);
+        		
+        		Motor.A.rotate(720, true);
+        		Motor.B.rotate(-720);
         	}
         }
     }
